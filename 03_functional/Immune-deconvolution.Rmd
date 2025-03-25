@@ -265,7 +265,7 @@ graph_deconvolution_results <- function(res, method) {
   # also graph subsets by factor_of_interest_1 (e.g. tissue type)
   for (i in 1:length(factor_of_interest_1_levels)) {
     print(
-      res_long %>% subset(.data[[factor_of_interest_1]] == factor_of_interest_1_levels[i]) %>%
+      res_long %>% filter(.data[[factor_of_interest_1]] == factor_of_interest_1_levels[i]) %>%
         ggplot(aes(x = .data[[factor_of_interest_2]], y = score, color = cell_type)) +
         geom_point(size = 4) +
         ggtitle(paste0(method, ": Immune cell deconvolution in ", factor_of_interest_1_levels[i])) +
