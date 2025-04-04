@@ -5,6 +5,8 @@ Templates with ![](https://img.shields.io/badge/status-alpha-yellow) revision in
 
 Templates with ![](https://img.shields.io/badge/status-draft-grey) revision indicates that the components or processes are not fully tested. There is no test data available, parameters need to be set up manually within the code, and specific code changes are required based on the data used.
 
+Read [main page](https://github.com/bcbio) to know how to collaborate with us.
+
 # Guideline for RNAseq downstream analysis
 
 - Set the working directory to this file level. We recommend to use **Projects** in Rstudio.

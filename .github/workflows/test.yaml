@@ -1,0 +1,57 @@
+name: Render R Markdown
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  render-rmd:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      
+    - name: Install pandoc
+      uses: pandoc/actions/setup@v1
+    - name: Run pandoc
+      run: pandoc --version
+    - name: Setup R
+      uses: r-lib/actions/setup-r@v2
+      with:
+        use-public-rspm: true
+
+    # Cache R package installations
+    - name: Cache R packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.R/  
+        key: ${{ runner.os }}-R-${{ hashFiles('**/*.Rmd', '**/*.R') }}
+        restore-keys: |
+          ${{ runner.os }}-R-
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libcurl4-openssl-dev libfontconfig1-dev libfreetype6-dev
+
+    - name: Install necessary R packages
+      run: |
+        R -e 'install.packages("BiocManager")'
+        R -e 'BiocManager::install("renv")'
+        R -e 'BiocManager::install(c("Rhtslib", "Rsamtools", "GenomicAlignments", "rtracklayer", "systemfonts"))'
+        R -e 'BiocManager::install(renv::dependencies(path = "./01_quality_assessment/.")[["Package"]])'
+        # Add any other package installations you need here
+        # e.g., Rscript ./install_depedencies.R
+
+    - name: Render R Markdown
+      run: |
+        Rscript -e 'rmarkdown::render("./01_quality_assessment/QC.Rmd")'
+        
+    - name: Upload HTML report
+      uses: actions/upload-artifact@v4
+      with:
+        name: rendered-report
+        path: ./01_quality_assessment/QC.html
