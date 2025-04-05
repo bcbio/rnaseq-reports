@@ -23,7 +23,6 @@ params:
 ---
 
 ```{r library-load, cache=FALSE, message=FALSE,echo=FALSE}
-
 library(tidyverse)
 library(knitr)
 library(glue)
@@ -37,18 +36,22 @@ library(CSCORE)
 library(SAVER)
 library(Rmagic)
 
-invisible(list2env(params,environment()))
+invisible(list2env(params, environment()))
 source(project_file)
-reticulate::use_condaenv(magic_condaEnv,required = T)
+reticulate::use_condaenv(magic_condaEnv, required = T)
 
-inputRead <- function(f){
-  if(sum(endsWith(f,c("rds","RDS")))>0){
-    if(R.utils::isUrl(f)){f <- url(f)}
+inputRead <- function(f) {
+  if (sum(endsWith(f, c("rds", "RDS"))) > 0) {
+    if (R.utils::isUrl(f)) {
+      f <- url(f)
+    }
     return(readRDS(f))
-  }else if(sum(endsWith(f,c("qs","QS")))>0){
-    if(R.utils::isUrl(f)){f <- url(f)}
-     return(qread(f))
-  }else{
+  } else if (sum(endsWith(f, c("qs", "QS"))) > 0) {
+    if (R.utils::isUrl(f)) {
+      f <- url(f)
+    }
+    return(qread(f))
+  } else {
     print("Check file extension and choose appropriate functions!")
   }
 }
@@ -57,16 +60,16 @@ inputRead <- function(f){
 ```{r report-setup,echo=FALSE}
 ggplot2::theme_set(theme_light(base_size = 11))
 opts_chunk[["set"]](
-    fig.align = 'center',
-    echo=TRUE,
-    cache = FALSE,
-    dev = c("png", "pdf"),
-    error = TRUE,
-    highlight = TRUE,
-    message = FALSE,
-    prompt = FALSE,
-    tidy = FALSE,
-    warning = FALSE)
+  fig.align = "center",
+  echo = TRUE,
+  cache = FALSE,
+  dev = c("png", "pdf"),
+  error = TRUE,
+  highlight = TRUE,
+  message = FALSE,
+  prompt = FALSE,
+  tidy = FALSE,
+  warning = FALSE)
 ```
 
 
@@ -95,9 +98,11 @@ More details about the method can be found in the section **Method description**
 List of all gene of interests:
 
 ```{r gene-of-interests}
-corr_genes_all <- c("COL1A1","COL1A2","DCN",
-                    "EBF2","IL33","PRX","LY6G6C")
-DT::datatable(data.frame(gene=corr_genes_all))
+corr_genes_all <- c(
+  "COL1A1", "COL1A2", "DCN",
+  "EBF2", "IL33", "PRX", "LY6G6C"
+)
+DT::datatable(data.frame(gene = corr_genes_all))
 ```
 
 Starting off with `r length(corr_genes_all)` genes of interest.
@@ -107,8 +112,8 @@ Starting off with `r length(corr_genes_all)` genes of interest.
 ```{r seurat-loadin}
 seurat <- inputRead(seurat_obj)
 Idents(seurat) <- group_column
-seurat[['SCT']] <- NULL 
-raw_rna <- GetAssayData(object =  seurat[['RNA']], layer = 'counts')
+seurat[["SCT"]] <- NULL
+raw_rna <- GetAssayData(object = seurat[["RNA"]], layer = "counts")
 genes.use <- rowSums(raw_rna) > 0
 genes.use <- names(genes.use[genes.use])
 seurat <- seurat[genes.use, ]
@@ -142,32 +147,34 @@ perc_cells <- num_cells / ncol(seurat)
 avg_expression <- colMeans(data_rna)
 
 df_genes <- data.frame(num_cells, perc_cells, avg_expression)
-df_genes <- df_genes %>% 
-  mutate(filter = !((perc_cells > min_perc) & 
-                      (num_cells > min_cells) & 
-                      (avg_expression > min_exp)))
+df_genes <- df_genes %>%
+  mutate(filter = !((perc_cells > min_perc) &
+    (num_cells > min_cells) &
+    (avg_expression > min_exp)))
 df_genes$gene <- row.names(df_genes)
 df_genes <- df_genes %>% arrange(desc(avg_expression), desc(perc_cells))
-df_genes %>% 
-  select(-gene) %>% 
-   magrittr::set_colnames(c("N_Cell_Expressed","Perc_Cell_Expressed",
-                 "Avg_Expression","Filter"))%>% 
-  DT::datatable()%>%
-  DT::formatRound(columns=c('Perc_Cell_Expressed', 'Avg_Expression'), digits=3)
+df_genes %>%
+  select(-gene) %>%
+  magrittr::set_colnames(c(
+    "N_Cell_Expressed", "Perc_Cell_Expressed",
+    "Avg_Expression", "Filter"
+  )) %>%
+  DT::datatable() %>%
+  DT::formatRound(columns = c("Perc_Cell_Expressed", "Avg_Expression"), digits = 3)
 ```
 
 ```{r visualize-filter,fig.width=6}
-df_genes %>% 
+df_genes %>%
   ggplot(aes(x = perc_cells, y = avg_expression, color = filter)) +
-    geom_point(size=rel(3)) +
-    scale_color_manual(values=c("black","darkred"))+
-    theme_minimal()+
-    labs(x="Percent of cells expressing the gene",y="Average expression")
+  geom_point(size = rel(3)) +
+  scale_color_manual(values = c("black", "darkred")) +
+  theme_minimal() +
+  labs(x = "Percent of cells expressing the gene", y = "Average expression")
 ```
 
 ```{r remain-gene}
 if (filter_gene == TRUE) {
-    corr_genes <- (df_genes %>% subset(filter == FALSE))$gene
+  corr_genes <- (df_genes %>% subset(filter == FALSE))$gene
 }
 ```
 
@@ -185,42 +192,45 @@ We compare three alternative methods of estimating expression levels to log norm
 # Store output so we don't have to re-run imputation each time
 filename <- glue("{path_outs}/imputed.RDS")
 if (!file.exists(filename)) {
-    # Get raw counts
-    raw_rna <- LayerData(seurat, assay = "RNA", layer = "counts")
+  # Get raw counts
+  raw_rna <- LayerData(seurat, assay = "RNA", layer = "counts")
 
-    # SCT
-    # Re-run SCT on subset data
-    seurat <- SCTransform(seurat, return.only.var.genes = FALSE, min_cells = 1)
+  # SCT
+  # Re-run SCT on subset data
+  seurat <- SCTransform(seurat, return.only.var.genes = FALSE, min_cells = 1)
 
-    # Creating new seurat object for genes of interest only
-    data_raw <-  FetchData(seurat, assay="RNA", layer="counts", vars=corr_genes)
-    data_rna <-  FetchData(seurat, assay="RNA", layer="data", vars=corr_genes)
-    data_sct <-  FetchData(seurat, assay="SCT", layer="data", vars=corr_genes)
+  # Creating new seurat object for genes of interest only
+  data_raw <- FetchData(seurat, assay = "RNA", layer = "counts", vars = corr_genes)
+  data_rna <- FetchData(seurat, assay = "RNA", layer = "data", vars = corr_genes)
+  data_sct <- FetchData(seurat, assay = "SCT", layer = "data", vars = corr_genes)
 
-    seurat_imputed <- CreateSeuratObject(counts=t(data_raw), 
-                                         data=t(data_rna), 
-                                         meta.data=seurat@meta.data)
-    seurat_imputed[["SCT"]] <- CreateAssayObject(data=t(data_sct))
-    seurat_imputed[["RAW"]] <- CreateAssayObject(counts=raw_rna)
+  seurat_imputed <- CreateSeuratObject(
+    counts = t(data_raw),
+    data = t(data_rna),
+    meta.data = seurat@meta.data
+  )
+  seurat_imputed[["SCT"]] <- CreateAssayObject(data = t(data_sct))
+  seurat_imputed[["RAW"]] <- CreateAssayObject(counts = raw_rna)
 
-    # Delete the original seurat object to save memory
-    rm(seurat)
+  # Delete the original seurat object to save memory
+  rm(seurat)
 
-    data_magic <- magic(t(raw_rna), genes = corr_genes)$result
-    seurat_imputed[["MAGIC"]] <- CreateAssayObject(data=t(data_magic))
+  data_magic <- magic(t(raw_rna), genes = corr_genes)$result
+  seurat_imputed[["MAGIC"]] <- CreateAssayObject(data = t(data_magic))
 
-    # SAVER
-    # Generate SAVER predictions for those genes
-    genes.ind <- which(rownames(raw_rna) %in% corr_genes)
-    data_saver <- saver(raw_rna, pred.genes = genes.ind, 
-                        pred.genes.only = TRUE, 
-                        estimates.only = TRUE, 
-                        ncores = parallel::detectCores()-2)
+  # SAVER
+  # Generate SAVER predictions for those genes
+  genes.ind <- which(rownames(raw_rna) %in% corr_genes)
+  data_saver <- saver(raw_rna,
+    pred.genes = genes.ind,
+    pred.genes.only = TRUE,
+    estimates.only = TRUE,
+    ncores = parallel::detectCores() - 2
+  )
 
-    seurat_imputed[["SAVER"]] <- CreateAssayObject(data=data_saver)
+  seurat_imputed[["SAVER"]] <- CreateAssayObject(data = data_saver)
 
-    saveRDS(seurat_imputed, filename)
-
+  saveRDS(seurat_imputed, filename)
 }
 
 seurat_imputed <- readRDS(filename)
@@ -233,18 +243,19 @@ assays <- c("RNA", "SCT", "MAGIC", "SAVER")
 
 df_avg <- data.frame(gene = corr_genes)
 for (assay in assays) {
-    data <- GetAssayData(object = seurat_imputed[[assay]], layer = 'data')
-    avg <- data.frame(rowMeans(data))
-    colnames(avg) <- assay
-    avg$gene <- row.names(avg)
-   df_avg <-  left_join(df_avg, avg, by = "gene")
+  data <- GetAssayData(object = seurat_imputed[[assay]], layer = "data")
+  avg <- data.frame(rowMeans(data))
+  colnames(avg) <- assay
+  avg$gene <- row.names(avg)
+  df_avg <- left_join(df_avg, avg, by = "gene")
 }
 
 pheatmap(df_avg %>% column_to_rownames(var = "gene"),
-         scale = "column",
-         cluster_col = TRUE, cluster_row = TRUE, 
-         show_rownames = TRUE,
-         angle_col=0)
+  scale = "column",
+  cluster_col = TRUE, cluster_row = TRUE,
+  show_rownames = TRUE,
+  angle_col = 0
+)
 ```
 
 # Correlation Estimates 
@@ -263,65 +274,64 @@ We have a few different ways to compute correlation scores with their associated
 filename <- glue("{path_outs}/corr.csv")
 
 if (!file.exists(filename)) {
+  # Compute spearman correlation for each method (except CS-CORE which is run later)
+  # Unique combination of each gene pair
+  genes_comb <- data.frame(t(combn(corr_genes, 2)))
+  n_comb <- nrow(genes_comb)
 
-    # Compute spearman correlation for each method (except CS-CORE which is run later)
-    # Unique combination of each gene pair
-    genes_comb <- data.frame(t(combn(corr_genes, 2)))
-    n_comb <- nrow(genes_comb)
+  # Create dataframe with correlation and p-values scores
+  df_corr <- genes_comb %>% rename("Var1" = X1, "Var2" = X2)
+  df_corr[assays] <- NA
+  df_p_val <- df_corr
 
-    # Create dataframe with correlation and p-values scores
-    df_corr <- genes_comb %>% rename("Var1" = X1, "Var2" = X2)
-    df_corr[assays] <- NA
-    df_p_val <- df_corr
-
-    for (idx in 1:n_comb) {
-
-        if (idx %% 200 == 0) {
-            print(glue("{idx}/{n_comb} correlations computed."))
-        }
-
-        # Name of genes to run correlation on
-        gene_1 <- genes_comb[idx, 1]
-        gene_2 <- genes_comb[idx, 2]
-
-        for (assay_ in assays) {
-            gene_exp <- t(seurat_imputed[[assay_]]$data[c(gene_1, gene_2), ]) %>% 
-              as.data.frame()
-
-            if (all(gene_exp[[gene_1]] == 0) | all(gene_exp[[gene_2]] == 0)) {
-                corr_val <- 0.0
-                p_val <- 1.0
-            } else {
-                # Calculate spearman correlation and p-value otherwise
-                tmp <- cor.test(gene_exp[[gene_1]], gene_exp[[gene_2]], 
-                                method = "spearman", exact = FALSE)
-                corr_val <- as.numeric(unname(tmp$estimate))
-                p_val <- as.numeric(tmp$p.value)
-            }
-
-            # Store correlation and p-values
-            df_corr[idx, assay_] <- corr_val
-            df_p_val[idx, assay_] <- p_val
-        }
+  for (idx in 1:n_comb) {
+    if (idx %% 200 == 0) {
+      print(glue("{idx}/{n_comb} correlations computed."))
     }
 
-    # Run CS-CORE
-    DefaultAssay(seurat_imputed) <- "RAW"
-    CSCORE_result <- CSCORE(seurat_imputed, genes=corr_genes)
+    # Name of genes to run correlation on
+    gene_1 <- genes_comb[idx, 1]
+    gene_2 <- genes_comb[idx, 2]
 
-    # Store CS-CORE results
-    tmp <- reshape2::melt(as.matrix(CSCORE_result$est)) %>% rename(CSCORE = value)
-    df_corr <- left_join(df_corr, tmp)
-    tmp <- reshape2::melt(as.matrix(CSCORE_result$p_value)) %>% rename(CSCORE = value)
-    df_p_val <- left_join(df_p_val, tmp)
+    for (assay_ in assays) {
+      gene_exp <- t(seurat_imputed[[assay_]]$data[c(gene_1, gene_2), ]) %>%
+        as.data.frame()
 
-    # Save output
-    write.csv(df_corr, filename)
-    write.csv(df_p_val, glue("{path_outs}/p_corr.csv"))
+      if (all(gene_exp[[gene_1]] == 0) | all(gene_exp[[gene_2]] == 0)) {
+        corr_val <- 0.0
+        p_val <- 1.0
+      } else {
+        # Calculate spearman correlation and p-value otherwise
+        tmp <- cor.test(gene_exp[[gene_1]], gene_exp[[gene_2]],
+          method = "spearman", exact = FALSE
+        )
+        corr_val <- as.numeric(unname(tmp$estimate))
+        p_val <- as.numeric(tmp$p.value)
+      }
+
+      # Store correlation and p-values
+      df_corr[idx, assay_] <- corr_val
+      df_p_val[idx, assay_] <- p_val
+    }
+  }
+
+  # Run CS-CORE
+  DefaultAssay(seurat_imputed) <- "RAW"
+  CSCORE_result <- CSCORE(seurat_imputed, genes = corr_genes)
+
+  # Store CS-CORE results
+  tmp <- reshape2::melt(as.matrix(CSCORE_result$est)) %>% rename(CSCORE = value)
+  df_corr <- left_join(df_corr, tmp)
+  tmp <- reshape2::melt(as.matrix(CSCORE_result$p_value)) %>% rename(CSCORE = value)
+  df_p_val <- left_join(df_p_val, tmp)
+
+  # Save output
+  write.csv(df_corr, filename)
+  write.csv(df_p_val, glue("{path_outs}/p_corr.csv"))
 }
 
-df_corr <- read.csv(filename, row.names=1)
-df_p_val <- read.csv(glue("{path_outs}/p_corr.csv"), row.names=1)
+df_corr <- read.csv(filename, row.names = 1)
+df_p_val <- read.csv(glue("{path_outs}/p_corr.csv"), row.names = 1)
 ```
 
 ## Heatmap of correlation estimates
@@ -332,27 +342,31 @@ Showing the patterns of correlation for each method. The x-axis and y-axis are t
 methods <- c("RNA", "SCT", "MAGIC", "SAVER", "CSCORE")
 
 cor_List <- purrr::map(methods, \(method){
-    corr <- df_corr[c("Var1", "Var2", method)]
-    corr_cp <- corr %>% rename(Var1 = Var2, Var2 = Var1)
-    corr <- rbind(corr, corr_cp)
-    mtx <- reshape2::dcast(corr, Var2 ~ Var1) %>% column_to_rownames("Var2")
+  corr <- df_corr[c("Var1", "Var2", method)]
+  corr_cp <- corr %>% rename(Var1 = Var2, Var2 = Var1)
+  corr <- rbind(corr, corr_cp)
+  mtx <- reshape2::dcast(corr, Var2 ~ Var1) %>% column_to_rownames("Var2")
 
-    # Set the diagonal values: Correlation = 1, p-value = 1
-    mtx <- as.matrix(mtx)
-    diag(mtx) <- 1
+  # Set the diagonal values: Correlation = 1, p-value = 1
+  mtx <- as.matrix(mtx)
+  diag(mtx) <- 1
 
-    breaks <-  seq(-1, 1, by = 0.1)
-    color <- colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(breaks))
-    show_legend <- F
-    if(method=="CSCORE"){show_legend <- T}
-    p <- pheatmap(mtx, show_rownames = FALSE, show_colnames = FALSE,
-                color = color, breaks = breaks, 
-                main = method,silent=T, legend=show_legend,
-                fontsize=rel(8))
-    return(p[[4]])
+  breaks <- seq(-1, 1, by = 0.1)
+  color <- colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(breaks))
+  show_legend <- F
+  if (method == "CSCORE") {
+    show_legend <- T
+  }
+  p <- pheatmap(mtx,
+    show_rownames = FALSE, show_colnames = FALSE,
+    color = color, breaks = breaks,
+    main = method, silent = T, legend = show_legend,
+    fontsize = rel(8)
+  )
+  return(p[[4]])
 })
 
-cor_comb <- grid.arrange(grobs = cor_List, nrow = 2,ncol=3)
+cor_comb <- grid.arrange(grobs = cor_List, nrow = 2, ncol = 3)
 plot(cor_comb)
 ```
 
@@ -368,33 +382,34 @@ methods_comb <- data.frame(t(combn(methods, 2)))
 plot_list <- list()
 
 for (idx in 1:nrow(methods_comb)) {
-    method_1 <- methods_comb[idx, 2]
-    method_2 <- methods_comb[idx, 1]
+  method_1 <- methods_comb[idx, 2]
+  method_2 <- methods_comb[idx, 1]
 
-    corr <- df_corr[c("Var1", "Var2", method_1, method_2)]
-    p_val <- df_p_val[,c("Var1", "Var2", method_1, method_2)]
-    corr$sig_1 <- p_val[[method_1]]
-    corr$sig_2 <- p_val[[method_2]]
+  corr <- df_corr[c("Var1", "Var2", method_1, method_2)]
+  p_val <- df_p_val[, c("Var1", "Var2", method_1, method_2)]
+  corr$sig_1 <- p_val[[method_1]]
+  corr$sig_2 <- p_val[[method_2]]
 
-    corr <- corr %>% mutate(sig = (sig_1 < 0.5) & (sig_2 < 0.05))
+  corr <- corr %>% mutate(sig = (sig_1 < 0.5) & (sig_2 < 0.05))
 
-    p <- ggplot(corr) +
-            geom_point(aes(x = get(method_1), y = get(method_2), 
-                           color = sig),size=rel(3)) +
-            theme_bw() +
-            NoLegend() +
-            scale_color_manual(values = c("FALSE" = "#9D0208", "TRUE" = "black")) +
-            labs(x = method_1, y = method_2, title = paste(method_1, "vs", method_2)) +
-            theme(plot.title = element_text(size=rel(1.5))) +
-            ylim(-1, 1) + xlim(-1, 1) +
-            geom_abline(slope = 1, intercept = 0, color = "#63bff0")
+  p <- ggplot(corr) +
+    geom_point(aes(
+      x = get(method_1), y = get(method_2),
+      color = sig
+    ), size = rel(3)) +
+    theme_bw() +
+    NoLegend() +
+    scale_color_manual(values = c("FALSE" = "#9D0208", "TRUE" = "black")) +
+    labs(x = method_1, y = method_2, title = paste(method_1, "vs", method_2)) +
+    theme(plot.title = element_text(size = rel(1.5))) +
+    ylim(-1, 1) +
+    xlim(-1, 1) +
+    geom_abline(slope = 1, intercept = 0, color = "#63bff0")
 
-    plot_list[[idx]] <- ggplotGrob(p)
-
+  plot_list[[idx]] <- ggplotGrob(p)
 }
 
 grid.arrange(grobs = plot_list, nrow = 3)
-
 ```
 
 # Method description 
