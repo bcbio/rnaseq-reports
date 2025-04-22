@@ -19,7 +19,7 @@ render_de <- function(column, numerator, denominator, subset_value = NULL) {
     params = list(
       column = column,
       subset_value = subset_value,
-      contrasts = list(c(column,numerator,denominator))
+      contrasts = list(c(column, numerator, denominator))
     )
   )
 }
