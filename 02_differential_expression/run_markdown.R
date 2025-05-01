@@ -5,8 +5,7 @@ library(rmarkdown)
 # set directory to this file folder
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 # example running with test data
-render_de <- function(column, numerator, denominator, subset_value = NULL,
-                      params_file = "params_de-testdata.R") {
+render_de <- function(column, numerator, denominator, subset_value = NULL) {
   rmarkdown::render(
     input = "DEG.Rmd",
     output_dir = ".",
@@ -20,11 +19,7 @@ render_de <- function(column, numerator, denominator, subset_value = NULL,
     params = list(
       column = column,
       subset_value = subset_value,
-      numerator = numerator,
-      denominator = denominator,
-      params_file = params_file,
-      project_file = "../information.R",
-      functions_file = "load_data.R"
+      contrasts = list(c(column, numerator, denominator))
     )
   )
 }
