@@ -1148,7 +1148,7 @@ If you would like to use `DEGpatterns.Rmd` template to visualize trends of gene 
 # Save the DESeq object to an RDS file
 saveRDS(dds_to_use, "DEGpattern_deseq_obj.rds")
 # Save the metadata to an RDS file
-saveRDS(coldata, "DEGpattern_deseq_meta.rds")
+saveRDS(coldata, "deseq_coldata.rds")
 
 # Set the adjusted p-value threshold to 0.05
 padj.cutoff <- 0.05
