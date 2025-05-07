@@ -19,7 +19,7 @@ params:
    # RDS object with dds variable from DESeq2 package
    deseq_obj: "https://raw.githubusercontent.com/bcbio/bcbioR-test-data/main/rnaseq/DEGpattern/DEGpattern_deseq_obj.rds"
    # a data.frame specifying the sample groups of interest
-   deseq_meta: "https://raw.githubusercontent.com/bcbio/bcbioR-test-data/main/rnaseq/DEGpattern/DEGpattern_deseq_meta.rds"
+   deseq_meta: "https://raw.githubusercontent.com/bcbio/bcbioR-test-data/main/rnaseq/DEG_visualization/deseq_coldata.rds"
    # a named vector with Differentially Expressed Genes (DEG) 
    deseq_deg: "https://raw.githubusercontent.com/bcbio/bcbioR-test-data/main/rnaseq/DEGpattern/DEGpattern_deseq_DEGs_padj0.05_topN1000.rds"
 ---
