@@ -15,9 +15,9 @@ These tools are designed to **complement each other**, not replace. Together, th
 | Feature                              | `visu_DEG.R` (Pathway-Centric)                    | `visu_DEG2.R` (Gene-Centric)                   |
 |--------------------------------------|--------------------------------------------------|-----------------------------------------------|
 | Focus                                | Enriched gene sets/pathways                      | Individual genes                              |
-| Key Input                            | Annotated DEG pathway CSV                        | Annotated DEG pathway CSV                     |
+| Key Input                            | Enriched pathway; full DEG analysis outputs; full sample by gene expression; meta data           |
 | Visualizations                       | Volcano plot, boxplot, heatmap                   | Volcano plot, boxplot                         |
-| Interactive gene/pathway selection   | Gene set dropdown, gene selection                | Gene selection only                           |
+| Interactive gene/pathway selection   | Enriched pathway dropdown                        | Gene selection                                |
 | Output Tables                        | DEG table for selected gene set                  | Pathways associated with selected gene        |
 | Expression Data Integration          | Heatmap + Boxplots for gene expression           | Boxplots only                                 |
 
