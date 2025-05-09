@@ -182,7 +182,7 @@ Here, we want to see consistency and a minimum of 20 million reads (the grey lin
 metrics %>%
   ggplot(aes(
     x = factor(sample, level = order),
-    y = total_reads / 1000000,
+    y = total_reads, # if total reads are not already in millions, divide by 10000000 here
     fill = .data[[factor_of_interest]]
   )) +
   geom_bar(stat = "identity") +

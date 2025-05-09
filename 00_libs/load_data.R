@@ -14,15 +14,31 @@ load_metrics <- function(se = se_object, multiqc = multiqc_data_dir,
   } else { # nf-core input
 
     # Get metrics from nf-core into bcbio like table
-    # many metrics are already in the Genereal Table of MultiQC, this reads the file
+    # many metrics are already in the General Table of MultiQC, this reads the file
     metrics <- read_tsv(file.path(multiqc_data_dir, "multiqc_general_stats.txt"))
 
+    # we use the names in the multiqc general stats file to determine which version of the pipeline was used.
+    # this affects other metrics processing throughout this function.
+    if (any(grepl("mqc-generalstats", names(metrics)))) {
+      version <- "3.14"
+    } else {
+      version <- "3.18"
+    }
+
     # we get some more metrics from Qualimap and rename columns
-    metrics_qualimap <- read_tsv(file.path(multiqc_data_dir, "mqc_qualimap_genomic_origin_1.txt"))
+    if (version == 3.14) {
+      metrics_qualimap <- read_tsv(file.path(multiqc_data_dir, "mqc_qualimap_genomic_origin_1.txt"))
+    } else {
+      metrics_qualimap <- read_tsv(file.path(multiqc_data_dir, "qualimap_genomic_origin.txt"))
+    }
+
     metrics <- metrics %>% full_join(metrics_qualimap)
     metrics <- metrics %>%
-      clean_names() %>%
-      dplyr::rename_with(~ gsub(".*mqc_generalstats_", "", .))
+      clean_names()
+
+    if (version == "3.14") {
+      metrics <- metrics %>% dplyr::rename_with(~ gsub(".*mqc_generalstats_", "", .))
+    }
 
     # This uses the fastqc metrics to get total reads
     total_reads <- metrics %>%
@@ -41,15 +57,28 @@ load_metrics <- function(se = se_object, multiqc = multiqc_data_dir,
       metrics <- metrics %>%
         dplyr::filter(is.na(fastqc_raw_total_sequences))
     }
+
     metrics <- metrics %>%
       remove_empty(which = "cols") %>%
-      full_join(total_reads) %>%
-      mutate(mapped_reads = samtools_reads_mapped) %>%
+      full_join(total_reads)
+
+    if (version == "3.14") {
+      metrics <- metrics %>% mutate(mapped_reads = samtools_reads_mapped)
+    } else {
+      metrics <- metrics %>% mutate(mapped_reads = samtools_stats_reads_mapped)
+    }
+
+    metrics <- metrics %>%
       rowwise() %>%
       mutate(exonic_rate = exonic / (exonic + intronic + intergenic)) %>%
       mutate(intronic_rate = intronic / (exonic + intronic + intergenic)) %>%
-      mutate(intergenic_rate = intergenic / (exonic + intronic + intergenic)) %>%
-      mutate(x5_3_bias = qualimap_5_3_bias)
+      mutate(intergenic_rate = intergenic / (exonic + intronic + intergenic))
+
+    if (version == "3.14") {
+      metrics <- metrics %>% mutate(x5_3_bias = qualimap_5_3_bias)
+    } else {
+      metrics <- metrics %>% mutate(x5_3_bias = qualimap_rnaseq_5_3_bias)
+    }
 
     # Sometimes we don't have rRNA due to mismatch annotation, We skip this if is the case
     gtf <- NULL
