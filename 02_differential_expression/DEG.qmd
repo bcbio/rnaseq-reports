@@ -176,8 +176,9 @@ sanitize_datatable <- function(df, ...) {
   DT::datatable(df, ...,
     rownames = gsub("-", "_", rownames(df)),
     colnames = gsub("-", "_", colnames(df)),
-    options = list(scrollX = TRUE,autoWidth = TRUE),
-    class = 'stripe hover')
+    options = list(scrollX = TRUE, autoWidth = TRUE),
+    class = "stripe hover"
+  )
 }
 ```
 
@@ -754,10 +755,12 @@ for (contrast in names(de_list)) {
   dt_list <- c(
     dt_list,
     list(h3(contrast)),
-    list(DT::datatable(res_sig, 
-                       options = list(
-                         scrollX = TRUE,autoWidth = TRUE),
-    class = 'stripe hover'))
+    list(DT::datatable(res_sig,
+      options = list(
+        scrollX = TRUE, autoWidth = TRUE
+      ),
+      class = "stripe hover"
+    ))
   )
 }
 tagList(dt_list)
