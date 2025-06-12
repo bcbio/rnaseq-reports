@@ -680,7 +680,7 @@ for (contrast in names(de_list)) {
 
 ## Volcano plot
 
-This volcano plot shows the genes that are significantly up- and down-regulated as a result of the analysis comparison. The points highlighted in purple are genes that have padj < 0.05 and a log2-fold change > 0.5. Points in pink have a padj < 0.05 and a log2-fold change < 0.5 and points in blue have a padj > 0.05 and a log2-fold change > 0.5. Grey points are non-significant. The dashed lines correspond to the cutoff values of log2 foldchange and padj that we have chosen.
+This volcano plot shows the genes that are significantly up- and down-regulated as a result of the analysis comparison. The points highlighted in purple are genes that are significantly differentially expressed with a large effect (padj < 0.05 and model coefficient > ±0.5). Points in pink are significant with a small effect (padj < 0.05 and model coefficient < ±0.5) and points in blue are not significant but have a large effect (padj > 0.05 and model coefficient > ±0.5). Grey points are non-significant. The dashed lines correspond to the cutoff values of padj and model coefficient that we have chosen.
 
 ::: {.panel-tabset}
 ```{r}
