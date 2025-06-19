@@ -1,0 +1,165 @@
+---
+title: "GO Similarity Analysis"
+author: "Harvard Chan Bioinformatics Core"
+date: "`r Sys.Date()`"
+format:
+  html:
+    number-sections: false
+    default-image-extension: svg
+    lightbox: true
+    callout-icon: false
+    format-links: true
+    toc: true
+    theme: sandstone
+    echo: true
+    eval: true
+    message: false
+    warning: false
+    code-copy: true
+    code-overflow: wrap
+    code-fold: true
+    code-line-numbers: true
+    embed-resources: true
+    standalone: true
+    html-math-method: katex
+    fig-align: center
+    fig-height: 4
+    fig-width: 4
+    grid:
+      sidebar-width: 250px
+      body-width: 900px
+      margin-width: 300px
+    comments:
+      hypothesis: true
+execute:
+  freeze: auto
+  keep-md: true
+params:
+  # Directory that hosts the pathway & DEG tables (one CSV per contrast)
+  deg_result_dir: "https://raw.githubusercontent.com/bcbio/bcbioR-test-data/main/rnaseq/DEG_visualization"
+  # **Vectors** of design‑matrix columns & contrasts to analyse
+  column: !expr c("sample_type")
+  contrasts: !expr c("normal_vs_tumor")
+---
+
+## Overview
+
+::: {.callout-note title="Workflow summary"}
+- Load pathway–gene associations that pass an FDR < 0.05 filter  
+- Keep pathways with ≥ 5 genes  
+- Map each retained pathway to its GO identifier via **msigdbr**  
+- Compute pair‑wise semantic similarity matrices with **simplifyEnrichment**  
+- Cluster and visualise with **simplifyGO**
+:::
+
+## Setup
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({
+  library(simplifyEnrichment)
+  library(glue)
+  library(dplyr)
+  library(msigdbr)
+  library(data.table)
+  library(tidyr)
+  library(purrr)
+})
+```
+
+## Load pathway tables
+
+```{r load-data}
+# All combinations of column & contrast supplied by the user
+input_grid <- expand_grid(column = params$column,
+                                 contrast = params$contrasts)
+
+# Read & combine pathway tables for all combinations
+pathway_gene_data <- map_dfr(
+  seq_len(nrow(input_grid)),
+  function(i) {
+    col_i <- input_grid$column[i]
+    con_i <- input_grid$contrast[i]
+    file_url <- glue(
+      "{params$deg_result_dir}/full_{col_i}_{con_i}_pathways.csv")
+    fread(file_url, showProgress = FALSE) %>%
+      mutate(column = col_i,
+             contrast = con_i)
+  }
+) %>%
+  filter(padj < 0.05) %>%              # FDR threshold
+  separate_rows(genes, sep = ",") %>%
+  rename(gene = genes, padj_pathway = padj) %>%
+  filter(gene != "" & !is.na(gene)) %>% 
+  unite("comb",c("column", "contrast"), remove = FALSE,sep=":")
+pathway_gene_data <- split(pathway_gene_data,pathway_gene_data$comb)
+msig_all <- msigdbr(species = "Homo sapiens") %>%
+  distinct(gs_name, gs_exact_source, gs_collection, gs_subcollection)
+```
+
+## Map pathways → GO IDs
+
+```{r map-go}
+pathway_valid <- function(pathway_gene,msig){
+  valid_pathways_df <- pathway_gene%>%
+    distinct(pathway, gene) %>%
+    count(pathway, name = "gene_count") %>%
+    filter(gene_count >= 5)
+  
+  cat("Retained", nrow(valid_pathways_df), "pathways after filtering\n")
+  head(valid_pathways_df)
+  
+  matched_sets <- msig %>%
+    filter(gs_name %in% valid_pathways_df$pathway) %>%
+    arrange(gs_collection, gs_name, gs_exact_source)
+  
+  go_ids <- split(matched_sets$gs_exact_source, matched_sets$gs_subcollection)
+  
+  # Sanity‑check for unmatched pathway names
+  unmatched <- setdiff(valid_pathways_df$pathway, msig_all$gs_name)
+  if (length(unmatched) > 0) {
+    message("Pathways not mapped to GO: ", 
+            paste(unmatched, collapse = ", "))}
+  return(go_ids)
+}
+valid_pathway_gene <- map(pathway_gene_data,pathway_valid,msig=msig_all)
+```
+
+
+
+## Compute similarity & clustering
+
+```{r comb}
+#| results: asis
+#| fig-width: 8
+#| fig-height: 4
+#| echo: false
+
+for (comb in names(valid_pathway_gene)) {
+  go_ids <- valid_pathway_gene[[comb]]
+  onts <- grep(names(go_ids), pattern = "GO:", value = TRUE)
+
+  cat("### Pathway Set for ", comb, "\n\n")
+  cat("::: {.panel-tabset}\n\n")
+
+  for (i in onts) {
+    go_ont <- gsub("GO:", "", i)
+    cat("### Ontology ", i, "\n\n", sep = "")
+
+    # Start a new graphics device so we can embed the figure inline
+    {
+      ont_mat <- GO_similarity(go_ids[[i]], ont = go_ont)
+      cl_df <- simplifyGO(ont_mat, plot = FALSE)
+      ht_clusters(ont_mat, cl_df$cluster)
+    }
+
+    cat("\n\n")
+  }
+
+  cat(":::\n\n")}
+```
+
+## Session Info
+
+```{r session-info}
+sessionInfo()
+```
