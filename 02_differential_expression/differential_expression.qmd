@@ -67,7 +67,7 @@ source(params$params_file)
 # 2. Set up project file (already done from QC probably)
 source(params$project_file)
 # 3. Load custom functions to load data from coldata/metrics/counts
-map(list.files(params$functions_file, pattern = "*.R$", full.names = T), source) %>% invisible()
+purrr::map(list.files(params$functions_file, pattern = "*.R$", full.names = T), source) %>% invisible()
 
 # Assign the genome parameter to the object genome
 # IMPORTANT set these values if you are not using the parameters in the header (lines 23-44)
