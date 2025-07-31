@@ -274,7 +274,7 @@ metrics %>%
   geom_point(alpha = 0.5, size = 4) +
   coord_flip() +
   scale_x_discrete(limits = rev) +
-  scale_y_continuous(name = "million reads") +
+  scale_y_continuous(name = "number of genes") +
   xlab("") +
   ggtitle("Number of Genes")
 ```
