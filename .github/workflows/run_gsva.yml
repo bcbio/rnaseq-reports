@@ -1,0 +1,71 @@
+name: Differential Expression Report
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '03_functional/GSVA.qmd'
+  pull_request:
+    branches: [main]
+    paths:
+      - '03_functional/GSVA.qmd'
+  workflow_dispatch:
+
+jobs:
+  r-deg:
+    runs-on: ubuntu-22.04
+
+    env:
+      RENV_PATHS_ROOT: ~/.local/share/renv  # persistent cache location
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+
+      - name: Install system dependencies for R packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libcurl4-openssl-dev libssl-dev libxml2-dev libgit2-dev libmagick++-dev libharfbuzz-dev libfribidi-dev
+        shell: bash
+
+      - name: Cache R packages (renv)
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.RENV_PATHS_ROOT }}
+          key: ${{ runner.os }}-renv-${{ hashFiles('03_functional/renv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-renv-
+
+      - name: Set repositories
+        run: Rscript ubuntu.R
+
+      - name: Restore environment from renv.lock
+        run: |
+          install.packages("renv", repos = "https://cloud.r-project.org")
+          renv::restore(prompt = FALSE, lockfile = "03_functional/renv.lock")
+        shell: Rscript {0}
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Run DEG report
+        id: render_deg
+        run: |
+          cd 03_functional
+          quarto render GSVA.qmd
+        shell: bash
+
+      - name: Deploy HTML to gh-pages
+        if: success()
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages || git checkout --orphan gh-pages
+          git switch gh-pages || git checkout -b gh-pages
+          git add 03_functional/GSVA.html
+          git commit -m "Deploy GSVA.html [skip ci]" || echo "No changes to commit"
+          git push origin gh-pages
+        shell: bash
