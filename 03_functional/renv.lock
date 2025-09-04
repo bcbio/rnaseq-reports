@@ -7354,10 +7354,10 @@
     },
     "matrixStats": {
       "Package": "matrixStats",
-      "Version": "1.4.1",
+      "Version": "1.5.0",
       "Source": "Repository",
       "Depends": [
-        "R (>= 2.12.0)"
+        "R (>= 3.4.0)"
       ],
       "Suggests": [
         "utils",
