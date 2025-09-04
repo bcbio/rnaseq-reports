@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  r-deg:
+  r-gsva:
     runs-on: ubuntu-22.04
 
     env:
@@ -51,8 +51,8 @@ jobs:
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
 
-      - name: Run DEG report
-        id: render_deg
+      - name: Run GSVA report
+        id: render_gsva
         run: |
           cd 03_functional
           quarto render GSVA.qmd
