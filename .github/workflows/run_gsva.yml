@@ -1,4 +1,4 @@
-name: Differential Expression Report
+name: GSVA Report
 
 on:
   push:
