@@ -90,7 +90,7 @@ set.seed(1234567890L)
 #| warning: FALSE
 source(params$project_file)
 source(params$params_file)
-map(list.files(params$functions_file, pattern = "*.R$", full.names = T), source) %>% invisible()
+purr::map(list.files(params$functions_file, pattern = "*.R$", full.names = T), source) %>% invisible()
 column <- params$column
 contrasts <- params$contrasts
 subset_column <- params$subset_column
