@@ -199,7 +199,6 @@ res %>% sanitize_datatable()
 ```
 
 ## Graph top 5 pathways
-::: {.panel-tabset}
 
 ```{r graph_pathways}
 #| results: 'asis'
@@ -239,7 +238,7 @@ if (length(pathways) > 0) {
 }
 ```
 
-:::
+
 
 # R session
 
