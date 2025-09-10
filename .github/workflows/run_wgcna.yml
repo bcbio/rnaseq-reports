@@ -63,9 +63,20 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin gh-pages || git checkout --orphan gh-pages
-          git switch gh-pages || git checkout -b gh-pages
-          git add 04_gene_patterns/WGCNA.html
-          git commit -m "Deploy WGCNA.html [skip ci]" || echo "No changes to commit"
-          git push origin gh-pages
+          OUTPUT_FILE="04_gene_patterns/WGCNA.html"
+
+          # Fetch gh-pages (if exists) and create worktree
+          git fetch origin gh-pages || true
+          git worktree add /tmp/gh-pages gh-pages 2>/dev/null || git worktree add /tmp/gh-pages -b gh-pages
+
+          # Copy the file into the worktree
+          mkdir -p "/tmp/gh-pages/$(dirname "$OUTPUT_FILE")"
+          cp "$OUTPUT_FILE" "/tmp/gh-pages/$(dirname "$OUTPUT_FILE")/"
+
+          cd /tmp/gh-pages
+
+          # Commit and push if there are changes
+          git add "$(dirname "$OUTPUT_FILE")/$(basename "$OUTPUT_FILE")"
+          git commit -m "Deploy $(basename "$OUTPUT_FILE") [skip ci]"
+          git push --force origin gh-pages
         shell: bash
