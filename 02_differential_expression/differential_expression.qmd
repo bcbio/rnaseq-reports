@@ -62,6 +62,7 @@ This code is in this ![](https://img.shields.io/badge/status-stable-green) revis
 
 ```{r load-params, cache = FALSE, message = FALSE, warning=FALSE}
 library(tidyverse)
+library(purrr)
 # 1. Set up input files in this R file (params_de.R)
 source(params$params_file)
 # 2. Set up project file (already done from QC probably)
