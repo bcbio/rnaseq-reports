@@ -1,0 +1,52 @@
+name: Quality Control
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'README.md'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'README.md'
+  workflow_dispatch:
+
+jobs:
+  readme:
+    runs-on: ubuntu-22.04
+
+    env:
+      RENV_PATHS_ROOT: ~/.local/share/renv  # persistent cache location
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+
+      - name: Deploy RMD to gh-pages
+        if: success()
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          OUTPUT_FILE="README.md"
+
+          # Create a temporary worktree for gh-pages branch
+          git fetch origin gh-pages || true
+          git worktree add /tmp/gh-pages gh-pages || git worktree add /tmp/gh-pages -b gh-pages
+
+          # Copy the file to the worktree
+          cp "$OUTPUT_FILE" /tmp/gh-pages/
+
+          cd /tmp/gh-pages
+
+          # Commit and push if there are changes
+          git add README.md
+          git commit -m "Deploy README.md [skip ci]"
+          git push --force origin gh-pages
+
+          # Clean up
+          cd -
+          git worktree remove /tmp/gh-pages
+        shell: bash
