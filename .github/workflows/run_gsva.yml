@@ -28,7 +28,7 @@ jobs:
       - name: Install system dependencies for R packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libcurl4-openssl-dev libssl-dev libxml2-dev libgit2-dev libmagick++-dev libharfbuzz-dev libfribidi-dev
+          sudo apt-get install -y build-essential libcurl4-openssl-dev libssl-dev libxml2-dev libgit2-dev libmagick++-dev libharfbuzz-dev libfribidi-dev gsfonts libglpk-dev pandoc
         shell: bash
 
       - name: Cache R packages (renv)
