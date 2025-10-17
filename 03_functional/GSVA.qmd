@@ -63,6 +63,7 @@ library(bcbioR)
 library(ggprism)
 library(knitr)
 library(clusterProfiler)
+library(purrr)
 
 colors <- cb_friendly_cols(1:15)
 ggplot2::theme_set(theme_prism(base_size = 14))
