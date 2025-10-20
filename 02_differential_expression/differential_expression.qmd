@@ -963,6 +963,11 @@ fa_list <- lapply(de_list, function(contrast) {
     all_in_life = all_in_life
   ) # Annotation databases to query against
 
+  # Filter and sort the ORA output for results with an adjust p-value less than 0.05
+  all  <- all  %>% filter(padj < 0.05) %>% arrange(padj)
+  up   <- up   %>% filter(padj < 0.05) %>% arrange(padj)
+  down <- down %>% filter(padj < 0.05) %>% arrange(padj)
+
   # Create a list to hold the ORA results for a given contrast
   list(
     all = all, # Assign the positive and negative lfc combined ORA results to "all"
