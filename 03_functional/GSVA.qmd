@@ -18,16 +18,24 @@ format:
     lightbox: true
 params:
   # set column name and contrasts to be factors of interest
-  column: "sample_type"
+  column: "group"
   contrasts:
     value:
-      - ["sample_type", "tumor", "normal"]
+      - ["group", "aCD3_aCD28_totalRNAseq", "aCD3_aCD28_mRNAseq"]
+      - ["group", "DMSO_totalRNAseq", "DMSO_mRNAseq"]
+      - ["group", "DMSO_totalRNAseq", "aCD3_aCD28_totalRNAseq"]
+      - ["group", "DMSO_totalRNAseq", "PMAi_totalRNAseq"]
+      - ["group", "DMSO_mRNAseq", "aCD3_aCD28_mRNAseq"]
+      - ["group", "DMSO_mRNAseq", "PMAi_mRNAseq"]
+      - ["group", "IL15_totalRNAseq", "IL15_mRNAseq"]
+      - ["group", "PMAi_totalRNAseq", "PMAi_mRNAseq"]
+      - ["group", "RB_totalRNAseq", "RB_mRNAseq"]
   project_file: ../information.R
-  params_file: ../00_params/params-example.R # example data
+  params_file: ../00_params/params.R # example data
   functions_file: ../00_libs
   # select from gene set repository at https://github.com/bcbio/resources/tree/main/gene_sets/gene_sets
   # choose geneset, click "Raw', and copy url to work with mouse data
-  geneset_fn: https://raw.githubusercontent.com/bcbio/resources/main/gene_sets/gene_sets/20240904/human/h.all.v2024.1.Hs.entrez.gmt
+  geneset_fn: https://raw.githubusercontent.com/bcbio/resources/main/gene_sets/gene_sets/20240904/human/c5.go.bp.v2024.1.Hs.entrez.gmt
 ---
 
 ```{r}
@@ -63,6 +71,9 @@ library(bcbioR)
 library(ggprism)
 library(knitr)
 library(clusterProfiler)
+library(purrr)
+library(h3)
+library(shiny)
 
 colors <- cb_friendly_cols(1:15)
 ggplot2::theme_set(theme_prism(base_size = 14))
@@ -90,7 +101,7 @@ set.seed(1234567890L)
 #| warning: FALSE
 source(params$project_file)
 source(params$params_file)
-purr::map(list.files(params$functions_file, pattern = "*.R$", full.names = T), source) %>% invisible()
+map(list.files(params$functions_file, pattern = "*.R$", full.names = T), source) %>% invisible()
 column <- params$column
 contrasts <- params$contrasts
 subset_column <- params$subset_column
@@ -113,18 +124,22 @@ sanitize_datatable <- function(df, ...) {
 -   PI: `r PI`
 -   Analyst: `r analyst`
 -   Experiment: `r experiment`
--   Aim: `r aim`
+
 
 ```{r load_data}
 coldata <- load_coldata(
-  coldata_fn, column,
+  coldata_fn, 
   subset_column, subset_value
 )
+coldata$Treatment <- gsub("IL15_PBL","IL15", coldata$Treatment)
+
+coldata$group <- paste0(coldata$Treatment,"_",coldata$RNAseq.type)
+
 coldata[[contrasts[[1]][1]]] <- relevel(as.factor(coldata[[contrasts[[1]][1]]]), contrasts[[1]][3])
 coldata$sample <- row.names(coldata)
 
 counts <- load_counts(counts_fn)
-counts <- counts[, colnames(counts) %in% coldata$sample]
+counts <- counts[, coldata$sample]
 ```
 
 # Method
@@ -187,56 +202,159 @@ gsvaPar <- GSVA::gsvaParam(counts_entrez, genes_by_pathway, kcdf = "Poisson")
 gsva.es <- gsva(gsvaPar, verbose = F)
 ```
 
-## Test for Significance
 
-```{r limma}
-mod <- model.matrix(~ factor(coldata[[column]]))
-fit <- lmFit(gsva.es, mod)
-fit <- eBayes(fit)
-res <- topTable(fit, coef = paste0("factor(coldata[[column]])", contrasts[[1]][2]), number = Inf, sort.by = "P")
+```{r, message=F, echo=F, warning=F}
 
-res %>% sanitize_datatable()
+
+# <column_of_comparison>_<treatment_name>_vs_<control_name>
+names_to_use <- lapply(contrasts, function(contrast) {
+  coef <- paste0(contrast[1], "_", contrast[2], "_vs_", contrast[3])
+})
+# Currently the contrasts list object doesn't have names for the items in the list
+# Assign the names from names_to_use to the names in the contrasts list object
+names(contrasts) <- names_to_use
+
+
+# Perform differential expression analysis for each contrast
+de_list <- lapply(contrasts, function(contrast) {
+  # Correctly assign the group_column, value1, and value2 using [[ ]]
+  group_column <- contrast[[1]]
+  value1 <- contrast[[2]]
+  value2 <- contrast[[3]]
+
+  # Subset the coldata data frame based on the group column and values
+  subset_coldata <- coldata[coldata[[group_column]] %in% c(value1, value2), ]
+subset_coldata$group <- relevel(subset_coldata$group, ref = value2)
+  
+  # Create a GSVA subset
+  gsva.sub <- gsva.es[, subset_coldata$sample]
+
+  # Create a design matrix for the model
+  mod <- model.matrix(~ factor(subset_coldata[[group_column]]))  # Using the correct group_column
+
+  # Fit the linear model
+  fit <- lmFit(gsva.sub, mod)
+  fit <- eBayes(fit)
+
+  # Check the column names of the coefficients in the fitted model
+  print("Coefficients in fit:")
+  print(colnames(fit$coefficients))  # Print column names of the coefficients in the fitted model
+
+  # Construct the correct coefficient name based on `value1`
+  coef_name <- paste0("factor(subset_coldata[[group_column]])", value1)
+
+
+  # Extract the results from the top table using the correct coefficient name
+  res <- topTable(fit, coef = coef_name, number = Inf, sort.by = "P")
+
+  # Subset the results for significantly differentially expressed genes
+  res_sig <- subset(res, res$adj.P.Val < 0.1)
+
+  # Store the results in a list
+  results <- list(
+    all = res,
+    sig = res_sig,
+    data = gsva.sub 
+  )
+
+  # Return the results
+  return(results)
+})
+
+
 ```
 
-## Graph top 5 pathways
+
+## Test for Significance
+
+::: {.panel-tabset}
+
+```{r}
+#| results: 'asis'
+
+# Create the tabs dynamically based on the contrasts
+for (contrast in names(de_list)) {
+  res_sig <- de_list[[contrast]][["sig"]]
+  
+  # Skip if no significant results are found
+  if (nrow(res_sig) == 0) {
+    next
+  }
+
+  # Create a tab header for each contrast
+  cat("### ", contrast, "\n\n")
+  
+  # Use htmltools to properly render the datatable
+  dt <- DT::datatable(res_sig, 
+    options = list(
+      scrollX = TRUE,
+      autoWidth = TRUE
+    ),
+    class = "stripe hover"
+  )
+  
+  print(htmltools::tagList(dt))
+  
+  cat("\n\n")
+}
+```
+
+
+
+:::
+
+
+## Graph top 5 pathways for each contrast
+
+::: {.panel-tabset}
 
 ```{r graph_pathways}
 #| results: 'asis'
+#| fig-height: 6
+#| fig-width: 8
 
-scores <- t(gsva.es)
-
-sig <- subset(res, res$adj.P.Val < 0.1)
-
-if (nrow(sig) >= 5) {
-  pathways <- rownames(sig)[1:5]
-} else if (nrow(sig) == 0) {
-  pathways <- c()
-} else {
-  pathways <- rownames(sig)
-}
-
-if (length(pathways) > 0) {
-  to_graph <- data.frame(scores[, pathways]) %>%
-    rownames_to_column("sample") %>%
-    pivot_longer(!sample, names_to = "pathway", values_to = "enrichment_score")
-  to_graph <- left_join(to_graph, coldata)
-
-  for (single_pathway in pathways) {
-    cat("### ", single_pathway, "\n")
-
-    to_graph_single_pathway <- to_graph %>% filter(pathway == single_pathway)
-    p <- ggplot(to_graph_single_pathway, aes(x = .data[[column]], y = enrichment_score)) +
-      geom_boxplot() +
-      geom_point(alpha = 0.5) +
-      ggtitle(single_pathway)
-    print(p)
-
-    cat("\n\n")
+# Loop over contrasts to generate graphs
+for (contrast in names(de_list)) {
+  # Create a tab for each contrast
+  cat("### ", contrast, "\n\n")
+  
+  sig <- de_list[[contrast]][["sig"]]
+  scores <- t(de_list[[contrast]][["data"]])
+  
+  # Ensure there are pathways to graph
+  if (nrow(sig) >= 5) {
+    pathways <- rownames(sig)[1:5]
+  } else if (nrow(sig) == 0) {
+    pathways <- c()
+  } else {
+    pathways <- rownames(sig)
   }
-} else {
-  cat("No pathways were detected as significantly enriched")
+
+  if (length(pathways) > 0) {
+    to_graph <- data.frame(scores[, pathways]) %>%
+      rownames_to_column("sample") %>%
+      pivot_longer(!sample, names_to = "pathway", values_to = "enrichment_score")
+    to_graph <- left_join(to_graph, coldata)
+
+    for (single_pathway in pathways) {
+      to_graph_single_pathway <- to_graph %>% filter(pathway == single_pathway)
+      p <- ggplot(to_graph_single_pathway, aes(x = .data[[column]], y = enrichment_score)) +
+        geom_boxplot() +
+        geom_point(alpha = 0.5) +
+        ggtitle(single_pathway)
+      print(p)
+      cat("\n\n")
+    }
+  } else {
+    cat("No pathways were detected as significantly enriched for this contrast.\n\n")
+  }
+  
+  cat("\n\n")
 }
 ```
+
+
+:::
 
 
 
