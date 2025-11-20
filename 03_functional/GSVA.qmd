@@ -65,8 +65,6 @@ library(ggprism)
 library(knitr)
 library(clusterProfiler)
 library(purrr)
-library(h3)
-library(shiny)
 
 colors <- cb_friendly_cols(1:15)
 ggplot2::theme_set(theme_prism(base_size = 14))
