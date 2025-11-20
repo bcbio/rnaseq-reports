@@ -125,7 +125,7 @@ coldata[[contrasts[[1]][1]]] <- relevel(as.factor(coldata[[contrasts[[1]][1]]]),
 coldata$sample <- row.names(coldata)
 
 counts <- load_counts(counts_fn)
-counts <- counts[, colnames(counts) %in% coldata$sample]
+counts <- counts[, coldata$sample]
 ```
 
 # Method
