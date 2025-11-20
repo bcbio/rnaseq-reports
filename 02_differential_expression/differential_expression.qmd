@@ -742,7 +742,9 @@ for (contrast in names(de_list)) {
 for (contrast in names(de_list)) {
   cat("### ", contrast, "\n\n")
   res_sig <- de_list[[contrast]][["sig"]]
-  ma <- norm_matrix[res_sig$gene_id, ]
+  con <- contrasts[[contrast]]
+  to_test <- subset(coldata, coldata[[column]] %in% c(con[2], con[3]))
+  ma <- norm_matrix[res_sig$gene_id, to_test$sample]
   colma <- coldata[, c(column), drop = FALSE]
   ma_colors <- lapply(colnames(colma), function(c) {
     l.col <- colors[1:length(unique(colma[[c]]))]
@@ -789,6 +791,8 @@ for (contrast in names(de_list)) {
     pivot_longer(cols = !gene_id, names_to = "sample", values_to = "log2_expression") %>%
     right_join(y = top_n, relationship = "many-to-many") %>%
     left_join(y = coldata, by = "sample")
+  con <- contrasts[[contrast]]
+  top_n_exp <- subset(top_n_exp, top_n_exp[[column]] %in% c(con[2], con[3]))
   p1 <- ggplot(top_n_exp, aes_string(x = column, y = "log2_expression")) +
     geom_boxplot(outlier.shape = NA, linewidth = 0.5, color = "grey") +
     geom_point() +
