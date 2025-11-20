@@ -18,20 +18,13 @@ format:
     lightbox: true
 params:
   # set column name and contrasts to be factors of interest
-  column: "group"
+  column: "sample_type"
   contrasts:
     value:
-      - ["group", "aCD3_aCD28_totalRNAseq", "aCD3_aCD28_mRNAseq"]
-      - ["group", "DMSO_totalRNAseq", "DMSO_mRNAseq"]
-      - ["group", "DMSO_totalRNAseq", "aCD3_aCD28_totalRNAseq"]
-      - ["group", "DMSO_totalRNAseq", "PMAi_totalRNAseq"]
-      - ["group", "DMSO_mRNAseq", "aCD3_aCD28_mRNAseq"]
-      - ["group", "DMSO_mRNAseq", "PMAi_mRNAseq"]
-      - ["group", "IL15_totalRNAseq", "IL15_mRNAseq"]
-      - ["group", "PMAi_totalRNAseq", "PMAi_mRNAseq"]
-      - ["group", "RB_totalRNAseq", "RB_mRNAseq"]
+      - ["sample_type", "tumor", "normal"]
+      - ["sample_type", "normal", "tumor"]
   project_file: ../information.R
-  params_file: ../00_params/params.R # example data
+  params_file: ../00_params/params-example.R # example data
   functions_file: ../00_libs
   # select from gene set repository at https://github.com/bcbio/resources/tree/main/gene_sets/gene_sets
   # choose geneset, click "Raw', and copy url to work with mouse data
