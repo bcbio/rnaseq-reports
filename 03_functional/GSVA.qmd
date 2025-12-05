@@ -122,9 +122,6 @@ coldata <- load_coldata(
   coldata_fn, 
   subset_column, subset_value
 )
-coldata$Treatment <- gsub("IL15_PBL","IL15", coldata$Treatment)
-
-coldata$group <- paste0(coldata$Treatment,"_",coldata$RNAseq.type)
 
 coldata[[contrasts[[1]][1]]] <- relevel(as.factor(coldata[[contrasts[[1]][1]]]), contrasts[[1]][3])
 coldata$sample <- row.names(coldata)
